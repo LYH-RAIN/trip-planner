@@ -1,0 +1,46 @@
+version: '3.8'
+
+services:
+  test_db:
+    image: mysql:8.0
+    container_name: trip_planner_test_db
+    environment:
+      MYSQL_ROOT_PASSWORD: test_password
+      MYSQL_DATABASE: trip_planner_test
+      MYSQL_USER: test_user
+      MYSQL_PASSWORD: test_password
+    ports:
+      - "3307:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-test_password}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - test_network
+
+  test_app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: trip_planner_test_app
+    depends_on:
+      - test_db
+    environment:
+      - FLASK_ENV=testing
+      - SECRET_KEY=test_secret_key
+      - DATABASE_URL=mysql+pymysql://test_user:test_password@test_db/trip_planner_test
+      - JWT_SECRET_KEY=test_jwt_secret_key
+      - AMAP_KEY=${TEST_AMAP_KEY:-test_amap_key}
+      - WECHAT_APP_ID=test_wechat_app_id
+      - WECHAT_APP_SECRET=test_wechat_app_secret
+      - PYTHONPATH=/app
+    volumes:
+      - ./:/app
+    command: pytest -v
+    networks:
+      - test_network
+
+networks:
+  test_network:
+    driver: bridge
