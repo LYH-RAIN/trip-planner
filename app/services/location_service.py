@@ -1,136 +1,211 @@
-from app.utils.amap_util import AmapClient
+import httpx
+from typing import List, Optional
+from app.core.config import settings
+from app.core.exceptions import ValidationError
+from app.schemas.location import (
+    LocationSearchResponse, LocationDetailResponse, LocationAroundResponse,
+    LocationListResponse, LocationAroundListResponse
+)
 
 
 class LocationService:
-    @staticmethod
-    def get_districts(keywords=None, subdistrict=1):
-        """
-        获取行政区域
-        """
-        result = AmapClient.get_districts(keywords, subdistrict)
+    def __init__(self):
+        self.base_url = settings.AMAP_BASE_URL
+        self.api_key = settings.AMAP_API_KEY
 
-        if result.get("status") != "1":
-            return None, result.get("info", "获取行政区域失败")
-
-        return {"districts": result.get("districts", [])}, None
-
-    @staticmethod
-    def search_places(keyword, city=None, page=1, page_size=20):
-        """
-        搜索地点
-        """
-        result = AmapClient.search_places(keyword, city, page, page_size)
-
-        if result.get("status") != "1":
-            return None, result.get("info", "搜索地点失败")
-
-        pois = result.get("pois", [])
-        locations = []
-
-        for poi in pois:
-            location = {
-                "id": poi.get("id"),
-                "name": poi.get("name"),
-                "type": poi.get("type").split(";")[0] if poi.get("type") else "",
-                "address": poi.get("address"),
-                "location": poi.get("location"),
-                "district": poi.get("adname"),
-                "city": poi.get("cityname"),
-                "province": poi.get("pname")
-            }
-
-            # 获取图片
-            if "photos" in poi and poi["photos"]:
-                location["image_url"] = poi["photos"][0].get("url")
-
-            locations.append(location)
-
-        return {
-            "total": int(result.get("count", 0)),
-            "locations": locations
-        }, None
-
-    @staticmethod
-    def get_place_detail(place_id):
-        """
-        获取地点详情
-        """
-        result = AmapClient.get_place_detail(place_id)
-
-        if result.get("status") != "1":
-            return None, result.get("info", "获取地点详情失败")
-
-        pois = result.get("pois", [])
-        if not pois:
-            return None, "地点不存在"
-
-        poi = pois[0]
-        detail = {
-            "id": poi.get("id"),
-            "name": poi.get("name"),
-            "type": poi.get("type").split(";")[0] if poi.get("type") else "",
-            "type_code": poi.get("typecode"),
-            "address": poi.get("address"),
-            "location": poi.get("location"),
-            "district": poi.get("adname"),
-            "city": poi.get("cityname"),
-            "province": poi.get("pname"),
-            "tel": poi.get("tel"),
-            "website": poi.get("website"),
-            "business_hours": poi.get("business_hours")
+    async def search_locations(
+            self,
+            keyword: str,
+            city: Optional[str] = None,
+            page: int = 1,
+            page_size: int = 20
+    ) -> LocationListResponse:
+        """搜索地点"""
+        url = f"{self.base_url}/place/text"
+        params = {
+            "key": self.api_key,
+            "keywords": keyword,
+            "types": "",
+            "city": city or "",
+            "children": 1,
+            "offset": page_size,
+            "page": page,
+            "extensions": "all"
         }
 
-        # 评分和价格
-        if "biz_ext" in poi:
-            detail["rating"] = float(poi["biz_ext"].get("rating", 0))
-            detail["price"] = float(poi["biz_ext"].get("cost", 0))
+        async with httpx.AsyncClient() as client:
+            response = await client.get(url, params=params)
+            data = response.json()
 
-        # 图片
-        if "photos" in poi and poi["photos"]:
-            detail["images"] = [photo.get("url") for photo in poi["photos"]]
+            if data.get("status") != "1":
+                raise ValidationError(f"搜索失败: {data.get('info')}")
 
-        # 标签
-        if "tag" in poi:
-            detail["tags"] = poi["tag"].split(",")
+            pois = data.get("pois", [])
+            total = int(data.get("count", 0))
 
-        return detail, None
+            locations = []
+            for poi in pois:
+                location = LocationSearchResponse(
+                    id=poi.get("id"),
+                    name=poi.get("name"),
+                    type=poi.get("type"),
+                    address=poi.get("address"),
+                    location=poi.get("location"),
+                    district=poi.get("adname"),
+                    city=poi.get("cityname"),
+                    province=poi.get("pname"),
+                    image_url=self._get_poi_image(poi)
+                )
+                locations.append(location)
 
-    @staticmethod
-    def search_around(location, radius=3000, types=None, page=1, page_size=20):
-        """
-        周边搜索
-        """
-        result = AmapClient.search_around(location, radius, types, page, page_size)
+            return LocationListResponse(total=total, locations=locations)
 
-        if result.get("status") != "1":
-            return None, result.get("info", "周边搜索失败")
+    async def get_location_detail(self, location_id: str) -> LocationDetailResponse:
+        """获取地点详情"""
+        url = f"{self.base_url}/place/detail"
+        params = {
+            "key": self.api_key,
+            "id": location_id,
+            "extensions": "all"
+        }
 
-        pois = result.get("pois", [])
-        locations = []
+        async with httpx.AsyncClient() as client:
+            response = await client.get(url, params=params)
+            data = response.json()
 
-        for poi in pois:
-            location_item = {
-                "id": poi.get("id"),
-                "name": poi.get("name"),
-                "type": poi.get("type").split(";")[0] if poi.get("type") else "",
-                "address": poi.get("address"),
-                "location": poi.get("location"),
-                "distance": int(poi.get("distance", 0)),
-                "district": poi.get("adname"),
-                "city": poi.get("cityname"),
-                "province": poi.get("pname"),
-                "tel": poi.get("tel"),
-                "business_hours": poi.get("business_hours")
-            }
+            if data.get("status") != "1":
+                raise ValidationError(f"获取详情失败: {data.get('info')}")
 
-            # 评分和价格
-            if "biz_ext" in poi:
-                location_item["rating"] = float(poi["biz_ext"].get("rating", 0))
-                location_item["price"] = float(poi["biz_ext"].get("cost", 0))
+            pois = data.get("pois", [])
+            if not pois:
+                raise ValidationError("地点不存在")
 
-            locations.append(location_item)
+            poi = pois[0]
 
-        return {
-            "total": int(result.get("count", 0)),
-            "locations": locations
-        }, None
+            return LocationDetailResponse(
+                id=poi.get("id"),
+                name=poi.get("name"),
+                type=poi.get("type"),
+                type_code=poi.get("typecode"),
+                address=poi.get("address"),
+                location=poi.get("location"),
+                district=poi.get("adname"),
+                city=poi.get("cityname"),
+                province=poi.get("pname"),
+                tel=poi.get("tel"),
+                website=poi.get("website"),
+                business_hours=self._format_business_hours(poi.get("business")),
+                rating=self._parse_rating(poi.get("rating")),
+                price=self._parse_price(poi.get("cost")),
+                images=self._get_poi_images(poi),
+                tags=self._parse_tags(poi.get("tag")),
+                description=poi.get("introduction"),
+                transportation=poi.get("traffic"),
+                tips=poi.get("tips")
+            )
+
+    async def search_around(
+            self,
+            location: str,
+            radius: int = 3000,
+            search_type: Optional[str] = None,
+            page: int = 1,
+            page_size: int = 20
+    ) -> LocationAroundListResponse:
+        """周边搜索"""
+        url = f"{self.base_url}/place/around"
+        params = {
+            "key": self.api_key,
+            "location": location,
+            "radius": radius,
+            "types": self._get_type_code(search_type) if search_type else "",
+            "sortrule": "distance",
+            "offset": page_size,
+            "page": page,
+            "extensions": "all"
+        }
+
+        async with httpx.AsyncClient() as client:
+            response = await client.get(url, params=params)
+            data = response.json()
+
+            if data.get("status") != "1":
+                raise ValidationError(f"周边搜索失败: {data.get('info')}")
+
+            pois = data.get("pois", [])
+            total = int(data.get("count", 0))
+
+            locations = []
+            for poi in pois:
+                location_item = LocationAroundResponse(
+                    id=poi.get("id"),
+                    name=poi.get("name"),
+                    type=poi.get("type"),
+                    address=poi.get("address"),
+                    location=poi.get("location"),
+                    district=poi.get("adname"),
+                    city=poi.get("cityname"),
+                    province=poi.get("pname"),
+                    distance=int(poi.get("distance", 0)),
+                    tel=poi.get("tel"),
+                    business_hours=self._format_business_hours(poi.get("business")),
+                    rating=self._parse_rating(poi.get("rating")),
+                    price=self._parse_price(poi.get("cost"))
+                )
+                locations.append(location_item)
+
+            return LocationAroundListResponse(total=total, locations=locations)
+
+    def _get_poi_image(self, poi: dict) -> Optional[str]:
+        """获取POI图片"""
+        photos = poi.get("photos", [])
+        if photos:
+            return photos[0].get("url")
+        return None
+
+    def _get_poi_images(self, poi: dict) -> List[str]:
+        """获取POI所有图片"""
+        photos = poi.get("photos", [])
+        return [photo.get("url") for photo in photos if photo.get("url")]
+
+    def _format_business_hours(self, business: dict) -> Optional[str]:
+        """格式化营业时间"""
+        if not business:
+            return None
+        return business.get("opentime")
+
+    def _parse_rating(self, rating: str) -> Optional[float]:
+        """解析评分"""
+        if not rating:
+            return None
+        try:
+            return float(rating)
+        except:
+            return None
+
+    def _parse_price(self, cost: str) -> Optional[float]:
+        """解析价格"""
+        if not cost:
+            return None
+        try:
+            return float(cost)
+        except:
+            return None
+
+    def _parse_tags(self, tag: str) -> List[str]:
+        """解析标签"""
+        if not tag:
+            return []
+        return [t.strip() for t in tag.split(";") if t.strip()]
+
+    def _get_type_code(self, search_type: str) -> str:
+        """获取类型代码"""
+        type_mapping = {
+            "餐饮": "050000",
+            "住宿": "100000",
+            "景点": "110000",
+            "购物": "060000",
+            "生活服务": "070000",
+            "交通设施": "150000"
+        }
+        return type_mapping.get(search_type, "")

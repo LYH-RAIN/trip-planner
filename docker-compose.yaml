@@ -1,92 +1,131 @@
 version: '3.8'
 
 services:
-  # MySQL 数据库
-  db:
-    image: mysql:8.0
-    container_name: trip_planner_db
-    restart: always
-    environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-password}
-      MYSQL_DATABASE: ${MYSQL_DATABASE:-trip_planner}
-      MYSQL_USER: ${MYSQL_USER:-trip_user}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-trip_password}
-    volumes:
-      - mysql_data:/var/lib/mysql
-      - ./docker/mysql/my.cnf:/etc/mysql/conf.d/my.cnf
-      - ./docker/mysql/init:/docker-entrypoint-initdb.d
-    ports:
-      - "${MYSQL_PORT:-3306}:3306"
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-password}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    networks:
-      - trip_planner_network
-
   # 应用服务
   app:
     build: .
     container_name: trip_planner_app
-    restart: always
-    depends_on:
-      - db
+    ports:
+      - "8000:8000"
     environment:
-      - FLASK_ENV=${FLASK_ENV:-production}
-      - SECRET_KEY=${SECRET_KEY:-your-secret-key}
-      - DATABASE_URL=mysql+pymysql://${MYSQL_USER:-trip_user}:${MYSQL_PASSWORD:-trip_password}@db/${MYSQL_DATABASE:-trip_planner}
-      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-your-jwt-secret-key}
-      - AMAP_KEY=${AMAP_KEY:-your-amap-key}
-      - WECHAT_APP_ID=${WECHAT_APP_ID:-your-wechat-app-id}
-      - WECHAT_APP_SECRET=${WECHAT_APP_SECRET:-your-wechat-app-secret}
-    volumes:
-      - ./app:/app/app
-      - ./logs:/app/logs
-    networks:
-      - trip_planner_network
-
-  # Nginx 服务
-  nginx:
-    image: nginx:1.21-alpine
-    container_name: trip_planner_nginx
-    restart: always
+      - DATABASE_URL=mysql+pymysql://trip_user:trip_password@mysql:3306/trip_planner
+      - REDIS_URL=redis://redis:6379/0
+      - SECRET_KEY=your-super-secret-key-change-in-production
+      - DEBUG=false
+      - WECHAT_APP_ID=${WECHAT_APP_ID}
+      - WECHAT_APP_SECRET=${WECHAT_APP_SECRET}
+      - AMAP_API_KEY=${AMAP_API_KEY}
+      - WEATHER_API_KEY=${WEATHER_API_KEY}
     depends_on:
-      - app
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./logs:/app/logs
+    restart: unless-stopped
+    networks:
+      - trip_network
+
+  # MySQL数据库
+  mysql:
+    image: mysql:8.0
+    container_name: trip_planner_mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_DATABASE: trip_planner
+      MYSQL_USER: trip_user
+      MYSQL_PASSWORD: trip_password
+      MYSQL_ROOT_HOST: '%'
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./docker/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./docker/mysql/my.cnf:/etc/mysql/conf.d/my.cnf
+    command: --default-authentication-plugin=mysql_native_password
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "trip_user", "-ptrip_password"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - trip_network
+
+  # Redis缓存
+  redis:
+    image: redis:7-alpine
+    container_name: trip_planner_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+      - ./docker/redis/redis.conf:/usr/local/etc/redis/redis.conf
+    command: redis-server /usr/local/etc/redis/redis.conf
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - trip_network
+
+  # Nginx反向代理
+  nginx:
+    image: nginx:alpine
+    container_name: trip_planner_nginx
+    ports:
+      - "80:80"
+      - "443:443"
     volumes:
       - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf
-      - ./static:/usr/share/nginx/html
-      - nginx_logs:/var/log/nginx
-    ports:
-      - "${NGINX_PORT:-80}:80"
-    networks:
-      - trip_planner_network
-
-  # 数据库初始化服务
-  db_init:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: trip_planner_db_init
+      - ./docker/nginx/conf.d:/etc/nginx/conf.d
+      - ./docker/nginx/ssl:/etc/nginx/ssl
+      - ./logs/nginx:/var/log/nginx
     depends_on:
-      - db
-    environment:
-      - MYSQL_HOST=db
-      - MYSQL_PORT=3306
-      - MYSQL_USER=root
-      - MYSQL_PASSWORD=${MYSQL_ROOT_PASSWORD:-password}
-      - MYSQL_DATABASE=${MYSQL_DATABASE:-trip_planner}
-    command: python scripts/init_db.py
-    volumes:
-      - ./scripts:/app/scripts
-      - ./docker/mysql/init:/app/docker/mysql/init
+      - app
+    restart: unless-stopped
     networks:
-      - trip_planner_network
+      - trip_network
 
-networks:
-  trip_planner_network:
-    driver: bridge
+  # 数据库管理工具 (可选)
+  adminer:
+    image: adminer
+    container_name: trip_planner_adminer
+    ports:
+      - "8080:8080"
+    environment:
+      ADMINER_DEFAULT_SERVER: mysql
+    depends_on:
+      - mysql
+    restart: unless-stopped
+    networks:
+      - trip_network
+    profiles:
+      - tools
+
+  # Redis管理工具 (可选)
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: trip_planner_redis_commander
+    ports:
+      - "8081:8081"
+    environment:
+      REDIS_HOSTS: local:redis:6379
+    depends_on:
+      - redis
+    restart: unless-stopped
+    networks:
+      - trip_network
+    profiles:
+      - tools
 
 volumes:
   mysql_data:
-  nginx_logs:
+  redis_data:
+
+networks:
+  trip_network:
+    driver: bridge

@@ -1,6 +1,8 @@
 #!/bin/bash
 
-echo "停止行程规划系统..."
+# 停止脚本
+echo "🛑 停止 Trip Planner 应用..."
+
 docker-compose down
 
-echo "行程规划系统已停止"
+echo "✅ 应用已停止"
