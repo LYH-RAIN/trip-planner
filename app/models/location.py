@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Text, Decimal, Integer, DateTime, Index, JSON
+from sqlalchemy import Column, String, Text, Decimal, Integer, BigInteger, DateTime, Index, JSON, ForeignKey
 from sqlalchemy.orm import relationship
 from .base import BaseModel
 
@@ -70,7 +70,7 @@ class LocationSearchLog(BaseModel):
     """地点搜索日志表"""
     __tablename__ = "location_search_logs"
 
-    user_id = Column(Integer, comment="用户ID")
+    user_id = Column(BigInteger, comment="用户ID")
     keyword = Column(String(128), nullable=False, comment="搜索关键词")
     city = Column(String(64), comment="搜索城市")
     search_type = Column(String(32), comment="搜索类型")
@@ -89,8 +89,8 @@ class UserLocationHistory(BaseModel):
     """用户地点浏览历史表"""
     __tablename__ = "user_location_history"
 
-    user_id = Column(Integer, nullable=False, comment="用户ID")
-    location_id = Column(Integer, comment="地点ID")
+    user_id = Column(BigInteger, nullable=False, comment="用户ID")
+    location_id = Column(BigInteger, comment="地点ID")
     amap_poi_id = Column(String(64), comment="高德POI ID")
     location_name = Column(String(128), comment="地点名称")
     view_type = Column(String(32), comment="浏览类型：search, detail, around")
@@ -111,7 +111,7 @@ class LocationRecommendation(BaseModel):
     """地点推荐表"""
     __tablename__ = "location_recommendations"
 
-    location_id = Column(Integer, nullable=False, comment="地点ID")
+    location_id = Column(BigInteger, nullable=False, comment="地点ID")
     amap_poi_id = Column(String(64), comment="高德POI ID")
     recommendation_type = Column(String(32), comment="推荐类型：hot, nearby, similar")
     target_city = Column(String(64), comment="目标城市")
