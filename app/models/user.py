@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Integer, DateTime, Text, Index
+from sqlalchemy import Column, String, Integer, BigInteger, DateTime, Text, Index, ForeignKey
 from sqlalchemy.orm import relationship
 from .base import BaseModel
 
@@ -34,8 +34,8 @@ class User(BaseModel):
 class UserFavorite(BaseModel):
     __tablename__ = "user_favorites"
 
-    user_id = Column(BigInteger, nullable=False, comment="用户ID")
-    trip_id = Column(BigInteger, nullable=False, comment="行程ID")
+    user_id = Column(BigInteger, ForeignKey('users.id'), nullable=False, comment="用户ID")
+    trip_id = Column(BigInteger, ForeignKey('trips.id'), nullable=False, comment="行程ID")
 
     # 关系
     user = relationship("User", back_populates="favorites")
