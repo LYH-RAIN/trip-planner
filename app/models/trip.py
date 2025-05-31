@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Text, DateTime, Integer, BigInteger, Decimal, JSON, Index, Time, Date, ForeignKey
+from sqlalchemy import Column, String, Text, DateTime, Integer, BigInteger, DECIMAL, JSON, Index, Time, Date, ForeignKey
 from sqlalchemy.orm import relationship
 from .base import BaseModel
 
@@ -21,8 +21,8 @@ class Trip(BaseModel):
     people_count = Column(Integer, default=1, comment="出行人数")
     preferences = Column(JSON, comment="偏好列表")
     overview = Column(Text, comment="行程总览")
-    budget = Column(Decimal(10, 2), comment="预算")
-    estimated_cost = Column(Decimal(10, 2), comment="预估费用")
+    budget = Column(DECIMAL(10, 2), comment="预算")
+    estimated_cost = Column(DECIMAL(10, 2), comment="预估费用")
     weather_info = Column(Text, comment="天气信息JSON")
     tags = Column(JSON, comment="标签列表")
     status = Column(Integer, default=0, comment="状态：0规划中，1已完成，2已取消")

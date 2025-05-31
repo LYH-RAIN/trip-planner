@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Text, Decimal, Integer, BigInteger, DateTime, Index, JSON, ForeignKey
+from sqlalchemy import Column, String, Text, DECIMAL, Integer, BigInteger, DateTime, Index, JSON, ForeignKey
 from sqlalchemy.orm import relationship
 from .base import BaseModel
 
@@ -11,17 +11,17 @@ class Location(BaseModel):
     name = Column(String(128), nullable=False, comment="地点名称")
     type = Column(String(32), comment="地点类型")
     type_code = Column(String(16), comment="类型代码")
-    address = Column(String(255), comment="详细地址")
-    latitude = Column(Decimal(10, 6), comment="纬度")
-    longitude = Column(Decimal(10, 6), comment="经度")
+    address = Column(DECIMAL(255), comment="详细地址")
+    latitude = Column(DECIMAL(10, 6), comment="纬度")
+    longitude = Column(DECIMAL(10, 6), comment="经度")
     district = Column(String(64), comment="区县")
     city = Column(String(64), comment="城市")
     province = Column(String(64), comment="省份")
     tel = Column(String(64), comment="联系电话")
     website = Column(String(255), comment="官网")
     business_hours = Column(String(255), comment="营业时间")
-    rating = Column(Decimal(2, 1), comment="评分")
-    price = Column(Decimal(10, 2), comment="价格")
+    rating = Column(DECIMAL(2, 1), comment="评分")
+    price = Column(DECIMAL(10, 2), comment="价格")
     images = Column(JSON, comment="图片列表")
     tags = Column(JSON, comment="标签列表")
     description = Column(Text, comment="描述")
@@ -116,7 +116,7 @@ class LocationRecommendation(BaseModel):
     recommendation_type = Column(String(32), comment="推荐类型：hot, nearby, similar")
     target_city = Column(String(64), comment="目标城市")
     target_category = Column(String(32), comment="目标分类")
-    score = Column(Decimal(3, 2), comment="推荐分数")
+    score = Column(DECIMAL(3, 2), comment="推荐分数")
     reason = Column(String(255), comment="推荐理由")
     is_active = Column(Integer, default=1, comment="是否启用")
 
