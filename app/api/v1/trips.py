@@ -5,16 +5,16 @@ from app.core.database import get_db
 from app.api.deps import get_current_user
 from app.models.user import User
 from app.schemas.trip import (
-    TripCreate, TripResponse, TripListResponse,
+    TripCreate, TripFullResponse, TripListResponse,
     TripOverviewResponse, TripDayDetailResponse, TripDayUpdate,
-    TripFoodsResponse
+    TripFoodsResponse, TripCancelRequest, TripCancelResponse
 )
 from app.services.trip_service import TripService
 from app.core.exceptions import NotFoundError, PermissionError, ValidationError
 
 router = APIRouter()
 
-@router.post("", response_model=TripResponse)
+@router.post("", response_model=TripFullResponse)
 def create_trip(
     trip_data: TripCreate,
     current_user: User = Depends(get_current_user),
@@ -32,17 +32,23 @@ def create_trip(
 
 @router.get("", response_model=TripListResponse)
 def get_trips(
-    status: Optional[str] = Query(None, description="行程状态"),
-    id: Optional[int] = Query(None, description="行程ID"),
+    status: Optional[str] = Query(None, description="行程状态 (all/planning/completed/cancelled)"),
+    trip_id: Optional[int] = Query(None, description="指定行程ID查询单个行程"),
     page: int = Query(1, ge=1, description="页码"),
     page_size: int = Query(20, ge=1, le=50, description="每页数量"),
+    include_days: Optional[bool] = Query(False, description="是否包含每日行程简要信息，默认为false"),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """获取行程列表"""
+    """获取行程列表
+
+    - **status**: 行程状态 (all/planning/completed/cancelled/inprogress)
+    - **trip_id**: 如果提供，则优先根据ID查询单个行程，忽略其他筛选和分页参数
+    - **include_days**: 是否在每个行程项中包含days_overview这样的每日简要信息
+    """
     try:
         trip_service = TripService(db)
-        result = trip_service.get_trips(current_user.id, status, id, page, page_size)
+        result = trip_service.get_trips(user_id=current_user.id, status=status, trip_id=trip_id, page=page, page_size=page_size, include_days=include_days)
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"获取行程列表失败: {str(e)}")
@@ -124,7 +130,7 @@ def get_trip_foods(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"获取美食攻略失败: {str(e)}")
 
-@router.post("/{trip_id}/cancel")
+@router.post("/{trip_id}/cancel", response_model=TripCancelResponse)
 def cancel_trip(
     trip_id: int = Path(..., description="行程ID"),
     current_user: User = Depends(get_current_user),
@@ -133,8 +139,8 @@ def cancel_trip(
     """取消行程"""
     try:
         trip_service = TripService(db)
-        result = trip_service.cancel_trip(trip_id, current_user.id)
-        return {"code": 0, "message": "success", "data": result}
+        cancelled_trip_data = trip_service.cancel_trip(trip_id, current_user.id)
+        return TripCancelResponse(data=cancelled_trip_data)
     except NotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except PermissionError as e:

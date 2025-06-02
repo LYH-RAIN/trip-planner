@@ -1,6 +1,6 @@
 def success_response(data=None, message="success"):
     """
-    成功响应
+    鎴愬姛鍝嶅簲
     """
     return {
         "code": 0,
@@ -10,7 +10,7 @@ def success_response(data=None, message="success"):
 
 def error_response(code=1, message="error", data=None):
     """
-    错误响应
+    閿欒��鍝嶅簲
     """
     return {
         "code": code,

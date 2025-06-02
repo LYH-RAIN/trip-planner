@@ -61,7 +61,6 @@ class LocationService:
             return LocationListResponse(total=total, locations=locations)
 
     async def get_location_detail(self, location_id: str) -> LocationDetailResponse:
-        """获取地点详情"""
         url = f"{self.base_url}/place/detail"
         params = {
             "key": self.api_key,
@@ -74,7 +73,7 @@ class LocationService:
             data = response.json()
 
             if data.get("status") != "1":
-                raise ValidationError(f"获取详情失败: {data.get('info')}")
+                raise ValidationError(f"鑾峰彇璇︽儏澶辫触: {data.get('info')}")
 
             pois = data.get("pois", [])
             if not pois:
@@ -112,7 +111,6 @@ class LocationService:
             page: int = 1,
             page_size: int = 20
     ) -> LocationAroundListResponse:
-        """周边搜索"""
         url = f"{self.base_url}/place/around"
         params = {
             "key": self.api_key,
@@ -130,7 +128,7 @@ class LocationService:
             data = response.json()
 
             if data.get("status") != "1":
-                raise ValidationError(f"周边搜索失败: {data.get('info')}")
+                raise ValidationError(f": {data.get('info')}")
 
             pois = data.get("pois", [])
             total = int(data.get("count", 0))
@@ -157,25 +155,21 @@ class LocationService:
             return LocationAroundListResponse(total=total, locations=locations)
 
     def _get_poi_image(self, poi: dict) -> Optional[str]:
-        """获取POI图片"""
         photos = poi.get("photos", [])
         if photos:
             return photos[0].get("url")
         return None
 
     def _get_poi_images(self, poi: dict) -> List[str]:
-        """获取POI所有图片"""
         photos = poi.get("photos", [])
         return [photo.get("url") for photo in photos if photo.get("url")]
 
     def _format_business_hours(self, business: dict) -> Optional[str]:
-        """格式化营业时间"""
         if not business:
             return None
         return business.get("opentime")
 
     def _parse_rating(self, rating: str) -> Optional[float]:
-        """解析评分"""
         if not rating:
             return None
         try:
@@ -184,7 +178,6 @@ class LocationService:
             return None
 
     def _parse_price(self, cost: str) -> Optional[float]:
-        """解析价格"""
         if not cost:
             return None
         try:
@@ -193,13 +186,12 @@ class LocationService:
             return None
 
     def _parse_tags(self, tag: str) -> List[str]:
-        """解析标签"""
         if not tag:
             return []
         return [t.strip() for t in tag.split(";") if t.strip()]
 
     def _get_type_code(self, search_type: str) -> str:
-        """获取类型代码"""
+        """"""
         type_mapping = {
             "餐饮": "050000",
             "住宿": "100000",

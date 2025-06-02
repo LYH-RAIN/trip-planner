@@ -12,7 +12,7 @@ async def wechat_login(
     login_data: UserLogin,
     db: Session = Depends(get_db)
 ):
-    """微信登录"""
+
     try:
         auth_service = AuthService(db)
         result = await auth_service.wechat_login(login_data.code)
@@ -20,4 +20,4 @@ async def wechat_login(
     except AuthenticationError as e:
         raise HTTPException(status_code=401, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"登录失败: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"��¼ʧ��: {str(e)}")

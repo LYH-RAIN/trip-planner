@@ -3,7 +3,7 @@ from flask import current_app
 
 
 class AmapClient:
-    """高德地图API客户端"""
+    """楂樺痉鍦板浘API瀹㈡埛绔�"""
 
     @staticmethod
     def get_districts(keywords=None, subdistrict=1):

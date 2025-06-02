@@ -1,5 +1,6 @@
 from sqlalchemy import Column, String, Text, DECIMAL, Integer, BigInteger, DateTime, Index, JSON, ForeignKey
 from sqlalchemy.orm import relationship
+from sqlalchemy.dialects.mysql import JSON as MysqlJSON # Assuming MySQL
 from .base import BaseModel
 
 
@@ -11,7 +12,7 @@ class Location(BaseModel):
     name = Column(String(128), nullable=False, comment="地点名称")
     type = Column(String(32), comment="地点类型")
     type_code = Column(String(16), comment="类型代码")
-    address = Column(DECIMAL(255), comment="详细地址")
+    address = Column(String(255), comment="详细地址") # Changed DECIMAL to String, address is not usually a number
     latitude = Column(DECIMAL(10, 6), comment="纬度")
     longitude = Column(DECIMAL(10, 6), comment="经度")
     district = Column(String(64), comment="区县")
@@ -22,8 +23,8 @@ class Location(BaseModel):
     business_hours = Column(String(255), comment="营业时间")
     rating = Column(DECIMAL(2, 1), comment="评分")
     price = Column(DECIMAL(10, 2), comment="价格")
-    images = Column(JSON, comment="图片列表")
-    tags = Column(JSON, comment="标签列表")
+    images = Column(MysqlJSON, comment="图片列表") # Changed to MysqlJSON
+    tags = Column(MysqlJSON, comment="标签列表") # Changed to MysqlJSON
     description = Column(Text, comment="描述")
     introduction = Column(Text, comment="详细介绍")
     transportation = Column(Text, comment="交通信息")
@@ -70,13 +71,15 @@ class LocationSearchLog(BaseModel):
     """地点搜索日志表"""
     __tablename__ = "location_search_logs"
 
-    user_id = Column(BigInteger, comment="用户ID")
+    user_id = Column(BigInteger, ForeignKey('users.id'), comment="用户ID") # Added ForeignKey
     keyword = Column(String(128), nullable=False, comment="搜索关键词")
     city = Column(String(64), comment="搜索城市")
     search_type = Column(String(32), comment="搜索类型")
     result_count = Column(Integer, default=0, comment="结果数量")
     ip_address = Column(String(45), comment="IP地址")
     user_agent = Column(String(255), comment="用户代理")
+    
+    # user = relationship("User") # Optional: if you need to access user from log
 
     __table_args__ = (
         Index('idx_user_id', 'user_id'),
@@ -89,14 +92,15 @@ class UserLocationHistory(BaseModel):
     """用户地点浏览历史表"""
     __tablename__ = "user_location_history"
 
-    user_id = Column(BigInteger, nullable=False, comment="用户ID")
-    location_id = Column(BigInteger, comment="地点ID")
+    user_id = Column(BigInteger, ForeignKey('users.id'), nullable=False, comment="用户ID") # Added ForeignKey
+    location_id = Column(BigInteger, ForeignKey('locations.id'), comment="地点ID") # Added ForeignKey
     amap_poi_id = Column(String(64), comment="高德POI ID")
     location_name = Column(String(128), comment="地点名称")
     view_type = Column(String(32), comment="浏览类型：search, detail, around")
     view_duration = Column(Integer, comment="浏览时长(秒)")
 
     # 关系
+    # user = relationship("User") # Optional
     location = relationship("Location", foreign_keys=[location_id])
 
     __table_args__ = (
@@ -111,7 +115,7 @@ class LocationRecommendation(BaseModel):
     """地点推荐表"""
     __tablename__ = "location_recommendations"
 
-    location_id = Column(BigInteger, nullable=False, comment="地点ID")
+    location_id = Column(BigInteger, ForeignKey('locations.id'), nullable=False, comment="地点ID") # Added ForeignKey
     amap_poi_id = Column(String(64), comment="高德POI ID")
     recommendation_type = Column(String(32), comment="推荐类型：hot, nearby, similar")
     target_city = Column(String(64), comment="目标城市")

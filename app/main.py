@@ -11,7 +11,7 @@ app = FastAPI(
     debug=settings.DEBUG
 )
 
-# CORS中间件
+# CORS涓�闂翠欢
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -20,7 +20,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 异常处理
+# 寮傚父澶勭悊
 @app.exception_handler(TripPlannerException)
 async def trip_planner_exception_handler(request: Request, exc: TripPlannerException):
     return JSONResponse(
@@ -43,10 +43,10 @@ async def http_exception_handler(request: Request, exc: HTTPException):
         }
     )
 
-# 路由
-app.include_router(auth.router, prefix="/api/v1/auth", tags=["认证"])
-app.include_router(trips.router, prefix="/api/v1/trips", tags=["行程"])
-app.include_router(locations.router, prefix="/api/v1/locations", tags=["地点"])
+# 璺�鐢�
+app.include_router(auth.router, prefix="/api/v1/auth", tags=["璁よ瘉"])
+app.include_router(trips.router, prefix="/api/v1/trips", tags=["琛岀▼"])
+app.include_router(locations.router, prefix="/api/v1/locations", tags=["鍦扮偣"])
 
 @app.get("/")
 async def root():

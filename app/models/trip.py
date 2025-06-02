@@ -1,5 +1,6 @@
 from sqlalchemy import Column, String, Text, DateTime, Integer, BigInteger, DECIMAL, JSON, Index, Time, Date, ForeignKey
 from sqlalchemy.orm import relationship
+from sqlalchemy.dialects.mysql import JSON as MysqlJSON # Assuming MySQL, adjust if using a different DB
 from .base import BaseModel
 
 
@@ -15,17 +16,19 @@ class Trip(BaseModel):
     start_timezone = Column(String(64), default="Asia/Shanghai", comment="开始时区")
     end_timezone = Column(String(64), default="Asia/Shanghai", comment="结束时区")
     days = Column(Integer, nullable=False, comment="行程天数")
-    departure = Column(String(64), nullable=False, comment="出发地")
-    destinations = Column(JSON, comment="目的地城市列表")
+    departure_poi_id = Column(String(64), comment="出发地POI ID") # Changed
+    departure_name = Column(String(128), nullable=False, comment="出发地名称") # Added
+    destinations = Column(MysqlJSON, comment="目的地城市列表") # Changed to MysqlJSON
     travel_mode = Column(Integer, default=1, comment="交通方式：1自驾，2公共交通")
     people_count = Column(Integer, default=1, comment="出行人数")
-    preferences = Column(JSON, comment="偏好列表")
+    preferences = Column(MysqlJSON, comment="偏好列表") # Changed to MysqlJSON
     overview = Column(Text, comment="行程总览")
     budget = Column(DECIMAL(10, 2), comment="预算")
     estimated_cost = Column(DECIMAL(10, 2), comment="预估费用")
-    weather_info = Column(Text, comment="天气信息JSON")
-    tags = Column(JSON, comment="标签列表")
-    status = Column(Integer, default=0, comment="状态：0规划中，1已完成，2已取消")
+    weather_info = Column(MysqlJSON, comment="天气信息JSON") # Changed to MysqlJSON
+    tags = Column(MysqlJSON, comment="标签列表") # Changed to MysqlJSON
+    status = Column(Integer, default=0, comment="状态：0规划中，1已完成，2已取消，3进行中") # Added state 3
+    generation_status = Column(Integer, default=0, comment="生成状态：0未生成，1生成中，2已生成，3生成失败") # Added
     view_count = Column(Integer, default=0, comment="浏览次数")
     like_count = Column(Integer, default=0, comment="点赞次数")
     share_count = Column(Integer, default=0, comment="分享次数")
@@ -44,9 +47,11 @@ class Trip(BaseModel):
     __table_args__ = (
         Index('idx_user_id', 'user_id'),
         Index('idx_status', 'status'),
+        Index('idx_generation_status', 'generation_status'), # Added
         Index('idx_public', 'is_public', 'status'),
         Index('idx_start_datetime', 'start_datetime'),
         Index('idx_created_at', 'created_at'),
+        Index('idx_departure_poi_id', 'departure_poi_id'), # Added
     )
 
 
@@ -64,11 +69,12 @@ class TripDay(BaseModel):
     theme = Column(String(128), comment="当天主题")
 
     # 天气信息
-    weather_condition = Column(String(32), comment="天气状况")
-    temperature = Column(String(16), comment="温度范围")
-    weather_icon = Column(String(32), comment="天气图标")
-    humidity = Column(String(16), comment="湿度")
-    wind = Column(String(32), comment="风力")
+    weather_condition = Column(String(32), comment="天气状况：sunny, cloudy, rainy等")
+    weather_condition_text = Column(String(32), comment="天气状况文本：晴、多云、雨等") # Added
+    temperature = Column(String(16), comment="温度范围：27°-31°")
+    weather_icon = Column(String(32), comment="天气图标：sunny, cloudy等")
+    humidity = Column(String(16), comment="湿度：65%")
+    wind = Column(String(32), comment="风力：东南风2级")
     precipitation = Column(String(16), comment="降水概率")
     uv_index = Column(String(16), comment="紫外线指数")
     sunrise = Column(Time, comment="日出时间")
@@ -82,14 +88,17 @@ class TripDay(BaseModel):
     accommodation_latitude = Column(DECIMAL(10, 6), comment="住宿纬度")
     accommodation_longitude = Column(DECIMAL(10, 6), comment="住宿经度")
     accommodation_contact = Column(String(64), comment="住宿联系电话")
+    accommodation_poi_id = Column(String(64), comment="住宿POI ID") # Added
 
     # 起终点信息
     start_point_name = Column(String(255), comment="起点名称")
     start_point_time = Column(Time, comment="起点时间")
     start_point_type = Column(String(32), comment="起点类型")
+    start_point_poi_id = Column(String(64), comment="起点POI ID") # Added
     end_point_name = Column(String(255), comment="终点名称")
     end_point_time = Column(Time, comment="终点时间")
     end_point_type = Column(String(32), comment="终点类型")
+    end_point_poi_id = Column(String(64), comment="终点POI ID") # Added
 
     estimated_cost = Column(DECIMAL(10, 2), comment="当日预估费用")
     is_generated = Column(Integer, default=0, comment="是否已生成详细行程：0否，1是")
@@ -104,6 +113,8 @@ class TripDay(BaseModel):
 
     __table_args__ = (
         Index('idx_trip_id', 'trip_id'),
+        Index('idx_trip_date', 'trip_id', 'date'), # Added
+        Index('idx_is_generated', 'is_generated'), # Added
         Index('uk_trip_day', 'trip_id', 'day_index', unique=True),
     )
 
@@ -120,7 +131,7 @@ class TripPlace(BaseModel):
     city = Column(String(64), comment="所在城市")
     category = Column(String(32), comment="分类")
     image_url = Column(String(255), comment="图片URL")
-    images = Column(JSON, comment="图片列表")
+    images = Column(MysqlJSON, comment="图片列表") # Changed to MysqlJSON
     rating = Column(DECIMAL(2, 1), comment="评分")
     price = Column(DECIMAL(10, 2), comment="门票价格")
     start_time = Column(Time, comment="开始时间")
@@ -166,7 +177,7 @@ class TripFood(BaseModel):
     city = Column(String(64), comment="所在城市")
     category = Column(String(32), comment="分类")
     image_url = Column(String(255), comment="图片URL")
-    images = Column(JSON, comment="图片列表")
+    images = Column(MysqlJSON, comment="图片列表") # Changed to MysqlJSON
     rating = Column(DECIMAL(2, 1), comment="评分")
     price = Column(DECIMAL(10, 2), comment="人均价格")
     start_time = Column(Time, comment="用餐时间")
@@ -240,6 +251,8 @@ class TripShare(BaseModel):
 
     # 关系
     trip = relationship("Trip", back_populates="shares")
+    # user relationship can be added if needed, e.g., if you want to access share.user
+    # user = relationship("User", back_populates="shares") 
 
     __table_args__ = (
         Index('idx_trip_id', 'trip_id'),
@@ -255,7 +268,7 @@ class TripReview(BaseModel):
     user_id = Column(BigInteger, ForeignKey('users.id'), nullable=False, comment="评价用户ID")
     rating = Column(Integer, nullable=False, comment="评分1-5")
     content = Column(Text, comment="评价内容")
-    images = Column(JSON, comment="评价图片列表")
+    images = Column(MysqlJSON, comment="评价图片列表") # Changed to MysqlJSON
 
     # 关系
     trip = relationship("Trip", back_populates="reviews")
@@ -276,11 +289,16 @@ class AIModelCall(BaseModel):
     prompt = Column(Text, nullable=False, comment="输入提示词")
     response = Column(Text, comment="AI返回结果")
     model_name = Column(String(64), comment="模型名称")
-    call_type = Column(String(32), comment="调用类型")
+    call_type = Column(String(32), comment="调用类型：trip_generate, trip_update, etc")
     status = Column(Integer, default=0, comment="状态：0处理中，1成功，2失败")
     error_message = Column(String(255), comment="错误信息")
     tokens_used = Column(Integer, comment="使用的token数量")
     cost = Column(DECIMAL(10, 4), comment="调用费用")
+    
+    # user relationship can be added if needed
+    # user = relationship("User", back_populates="ai_model_calls") 
+    # trip relationship can be added if needed
+    # trip = relationship("Trip", back_populates="ai_model_calls")
 
     __table_args__ = (
         Index('idx_user_id', 'user_id'),

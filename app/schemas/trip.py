@@ -7,8 +7,8 @@ from decimal import Decimal
 class TripBase(BaseModel):
     title: str = Field(..., max_length=128, description="行程标题")
     description: Optional[str] = None
-    departure: str = Field(..., max_length=64, description="出发地")
-    destinations: List[str] = Field(..., description="目的地城市列表")
+    departure: str = Field(..., max_length=64, description="出发地POI ID")
+    destinations: List[str] = Field(..., description="目的地POI ID列表")
     start_datetime: datetime = Field(..., description="开始时间")
     end_datetime: datetime = Field(..., description="结束时间")
     start_timezone: str = Field(default="Asia/Shanghai", description="开始时区")
@@ -23,6 +23,49 @@ class TripBase(BaseModel):
 
 class TripCreate(TripBase):
     pass
+
+
+class TripCollaboratorInfo(BaseModel):
+    user_id: int
+    avatar_url: Optional[str] = None
+    role: str
+
+
+class TripListItemResponse(BaseModel):
+    id: int
+    title: str
+    description: Optional[str] = None
+    cover_image: Optional[str] = None
+    start_datetime: datetime
+    end_datetime: datetime
+    days: int
+    travel_mode: int
+    people_count: int
+    status: int
+    is_public: int
+    weather_info: Optional[Dict[str, Any]] = Field(None, description="天气信息JSON对象")
+    estimated_cost: Optional[Decimal] = None
+    budget: Optional[Decimal] = None
+    tags: Optional[List[str]] = None
+    collaborators: Optional[List[TripCollaboratorInfo]] = None
+    collaborator_count: Optional[int] = None
+    user_id: int
+    created_at: datetime
+    updated_at: datetime
+    days_overview: Optional[List["TripDayOverviewItem"]] = None
+
+    class Config:
+        from_attributes = True
+
+
+class TripListResponse(BaseModel):
+    total: int
+    page: int
+    page_size: int
+    total_pages: int
+    has_next: bool
+    has_prev: bool
+    trips: List[TripListItemResponse]
 
 
 class TripUpdate(BaseModel):
@@ -45,15 +88,15 @@ class TripUpdate(BaseModel):
 
 
 class WeatherInfo(BaseModel):
-    condition: Optional[str] = None
-    temperature: Optional[str] = None
-    icon: Optional[str] = None
-    humidity: Optional[str] = None
-    wind: Optional[str] = None
-    precipitation: Optional[str] = None
-    uv_index: Optional[str] = None
-    sunrise: Optional[time] = None
-    sunset: Optional[time] = None
+    condition: Optional[str] = Field(None, description="天气状况")
+    temperature: Optional[str] = Field(None, description="温度范围")
+    icon: Optional[str] = Field(None, description="天气图标")
+    humidity: Optional[str] = Field(None, description="湿度")
+    wind: Optional[str] = Field(None, description="风力")
+    precipitation: Optional[str] = Field(None, description="降水概率")
+    uv_index: Optional[str] = Field(None, description="紫外线指数")
+    sunrise: Optional[time] = Field(None, description="日出时间")
+    sunset: Optional[time] = Field(None, description="日落时间")
 
 
 class AccommodationInfo(BaseModel):
@@ -64,46 +107,46 @@ class AccommodationInfo(BaseModel):
     latitude: Optional[Decimal] = None
     longitude: Optional[Decimal] = None
     contact: Optional[str] = None
+    accommodation_poi_id: Optional[str] = Field(None, description="住宿POI ID")
 
 
 class PointInfo(BaseModel):
     name: str
     time: Optional[time] = None
-    type: str
+    type: Optional[str] = None
+    poi_id: Optional[str] = Field(None, description="地点POI ID")
 
 
-class TripDayResponse(BaseModel):
+class TripDayOverviewItem(BaseModel):
     day_index: int
     date: date
-    datetime: datetime
-    timezone: str
     title: Optional[str] = None
-    summary: Optional[str] = None
     city: Optional[str] = None
-    theme: Optional[str] = None
-    weather: Optional[WeatherInfo] = None
-    accommodation: Optional[AccommodationInfo] = None
-    start_point: Optional[PointInfo] = None
-    end_point: Optional[PointInfo] = None
-    estimated_cost: Optional[Decimal] = None
     is_generated: bool
-    place_count: int
-    food_count: int
+    estimated_cost: Optional[Decimal] = None
+    start_location: Optional[PointInfo] = None
+    end_location: Optional[PointInfo] = None
+    weather: Optional[WeatherInfo] = None
+    attractions: Optional[List[Dict[str, Any]]] = Field(None, description="景点列表，如 [{'name': '南华寺', 'image_url': '...'}]")
 
     class Config:
         from_attributes = True
 
 
-class TripResponse(TripBase):
+class TripFullResponse(TripBase):
     id: int
     user_id: int
     days: int
     overview: Optional[str] = None
     estimated_cost: Optional[Decimal] = None
     status: int
+    generation_status: Optional[int] = None
     view_count: int
     like_count: int
     share_count: int
+    cover_image: Optional[str] = None
+    collaborators: Optional[List[TripCollaboratorInfo]] = None
+    collaborator_count: Optional[int] = None
     created_at: datetime
     updated_at: datetime
 
@@ -111,9 +154,9 @@ class TripResponse(TripBase):
         from_attributes = True
 
 
-class TripListResponse(BaseModel):
-    total: int
-    trips: List[TripResponse]
+class TripOverviewResponse(BaseModel):
+    trip_info: TripFullResponse
+    days_overview: List["TripDayOverviewItem"]
 
 
 class NavigationInfo(BaseModel):
@@ -128,57 +171,61 @@ class LocationPoint(BaseModel):
 
 
 class ItineraryItem(BaseModel):
-    time: str
-    type: str  # accommodation, transportation, place, food
+    time: Optional[str] = None
+    type: str
     name: str
     description: Optional[str] = None
     images: Optional[List[str]] = None
     latitude: Optional[Decimal] = None
     longitude: Optional[Decimal] = None
-    duration: Optional[int] = None
-    distance: Optional[Decimal] = None
-    transportation_mode: Optional[str] = None
-    from_location: Optional[LocationPoint] = None
-    to_location: Optional[LocationPoint] = None
+    duration: Optional[int] = Field(None, description="时长(分钟)")
+    distance: Optional[Decimal] = Field(None, description="距离(km)")
+    mode: Optional[str] = Field(None, alias="transportation_mode", description="交通方式, e.g., driving, walking")
+    from_location: Optional[LocationPoint] = Field(None, alias="from")
+    to_location: Optional[LocationPoint] = Field(None, alias="to")
     navigation: Optional[NavigationInfo] = None
     amap_poi_id: Optional[str] = None
-    category: Optional[str] = None
-    rating: Optional[Decimal] = None
     price: Optional[Decimal] = None
-    contact: Optional[str] = None
-    is_highlight: Optional[bool] = None
+
+    class Config:
+        from_attributes = True
+        populate_by_name = True
 
 
 class TripDayDetailResponse(BaseModel):
     trip_id: int
+    day_index: int
     date: date
     title: Optional[str] = None
     city: Optional[str] = None
     weather: Optional[WeatherInfo] = None
-    total_places: int
+    total_places: Optional[int] = None
     itinerary: List[ItineraryItem]
+
+    class Config:
+        from_attributes = True
+
+
+class TripDayUpdateItineraryItem(BaseModel):
+    time: Optional[str] = None
+    type: str
+    description: Optional[str] = None
+    duration: Optional[int] = Field(None, description="时长(分钟)")
+    amap_poi_id: str
+    price: Optional[Decimal] = None
+    next_transport: Optional[str] = Field(None, description="前往下一地点的交通方式")
 
 
 class TripDayUpdate(BaseModel):
     title: Optional[str] = None
-    summary: Optional[str] = None
+    summary: Optional[str] = Field(None, description="当日概述")
     city: Optional[str] = None
-    theme: Optional[str] = None
+    theme: Optional[str] = Field(None, description="当日主题")
     estimated_cost: Optional[Decimal] = None
-    accommodation: Optional[AccommodationInfo] = None
-    start_point: Optional[PointInfo] = None
-    end_point: Optional[PointInfo] = None
-    weather: Optional[WeatherInfo] = None
-    itinerary: Optional[List[ItineraryItem]] = None
+    itinerary: Optional[List[TripDayUpdateItineraryItem]] = Field(None, description="行程安排，只含实际地点")
 
 
-class TripOverviewResponse(BaseModel):
-    trip_info: TripResponse
-    days_list: List[TripDayResponse]
-    total_highlights: List[Dict[str, Any]]
-
-
-class TripFoodResponse(BaseModel):
+class TripFoodResponseItem(BaseModel):
     id: int
     name: str
     address: Optional[str] = None
@@ -186,12 +233,13 @@ class TripFoodResponse(BaseModel):
     category: Optional[str] = None
     image_url: Optional[str] = None
     rating: Optional[Decimal] = None
-    price: Optional[Decimal] = None
+    price: Optional[Decimal] = Field(None, description="人均价格")
     description: Optional[str] = None
     recommendation: Optional[str] = None
     business_hours: Optional[str] = None
     is_highlight: bool
     day_index: Optional[int] = None
+    amap_poi_id: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -200,4 +248,23 @@ class TripFoodResponse(BaseModel):
 class TripFoodsResponse(BaseModel):
     trip_id: int
     total: int
-    foods: List[TripFoodResponse]
+    foods: List[TripFoodResponseItem]
+
+
+class TripCancelRequest(BaseModel):
+    confirm: bool = Field(..., description="确认为true以取消行程")
+
+
+class TripCancelResponseData(BaseModel):
+    id: int
+    status: int
+    cancel_time: datetime
+
+
+class TripCancelResponse(BaseModel):
+    code: int = 0
+    message: str = "success"
+    data: TripCancelResponseData
+
+TripListItemResponse.update_forward_refs()
+TripOverviewResponse.update_forward_refs()
