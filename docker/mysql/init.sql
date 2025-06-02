@@ -81,7 +81,7 @@ CREATE TABLE IF NOT EXISTS trip_days (
     theme VARCHAR(128) COMMENT 'Day theme',
     weather_condition VARCHAR(32) COMMENT 'Weather condition code/short description',
     weather_condition_text TEXT COMMENT 'Weather condition narrative text',
-    temperature VARCHAR(16) COMMENT 'Temperature range (e.g., 10-15��C)',
+    temperature VARCHAR(16) COMMENT 'Temperature range (e.g., 10-15°C)',
     weather_icon VARCHAR(32) COMMENT 'Weather icon code',
     humidity VARCHAR(16) COMMENT 'Humidity (e.g., 50%)',
     wind VARCHAR(32) COMMENT 'Wind information',
@@ -412,39 +412,48 @@ CREATE TABLE IF NOT EXISTS location_recommendations (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Location recommendations for users';
 
 -- 插入测试用户数据
-INSERT INTO users (open_id, nickname, avatar_url, gender, country, province, city, status, vip_level) VALUES
-('test_open_id_1', '张三', 'https://example.com/avatar1.jpg', 1, '�?�?', '广东�?', '广州�?', 1, 0),
-('test_open_id_2', '李四', 'https://example.com/avatar2.jpg', 2, '�?�?', '广东�?', '深圳�?', 1, 1),
-('test_open_id_3', '王五', 'https://example.com/avatar3.jpg', 1, '�?�?', '北京�?', '北京�?', 1, 0);
+INSERT INTO users (
+  open_id, union_id, nickname, avatar_url, gender, country, province, city, phone, status, vip_level, created_at, updated_at, last_login_at
+) VALUES
+('test_open_id_1', NULL, '张三', 'https://example.com/avatar1.jpg', 1, '中国', '广东省', '广州', NULL, 1, 0, NOW(), NOW(), NULL),
+('test_open_id_2', NULL, '李四', 'https://example.com/avatar2.jpg', 2, '中国', '广东省', '深圳', NULL, 1, 1, NOW(), NOW(), NULL),
+('test_open_id_3', NULL, '王五', 'https://example.com/avatar3.jpg', 1, '中国', '北京市', '北京', NULL, 1, 0, NOW(), NOW(), NULL);
 
 -- 插入测试行程数据
-INSERT INTO trips (user_id, title, description, start_datetime, end_datetime, days, departure_poi_id, departure_name, destinations, travel_mode, people_count, preferences, overview, budget, estimated_cost, tags, status, is_public) VALUES
-(1, '广东三日�?', '探索广东的自然�?�光和美食文�?', '2024-05-01 09:00:00', '2024-05-03 18:00:00', 3, '广州', '广州', '["韶关", "清远"]', 1, 2, '["�?然�?�光", "摄影", "美�??"]', '�?次�?�程将游览丹霞山、南华�?�等著名�?点，品尝当地特色美�?��?', 2000.00, 1850.00, '["周末�?", "亲子�?"]', 1, 1),
-(2, '北京文化之旅', '感受首都的历史文化底�?', '2024-06-01 08:00:00', '2024-06-04 20:00:00', 4, '深圳', '深圳', '["北京"]', 2, 1, '["历史文化", "博物�?", "古建�?"]', '深度游�?�故�?、长城、天坛等历史文化�?点�?', 3000.00, 2800.00, '["文化�?", "历史�?"]', 0, 0);
+INSERT INTO trips (
+  user_id, title, description, cover_image, departure_poi_id, departure_name, destinations, start_datetime, end_datetime, start_timezone, end_timezone, days, travel_mode, people_count, preferences, overview, budget, estimated_cost, weather_info, tags, status, generation_status, view_count, like_count, share_count, is_public, created_at, updated_at
+) VALUES
+(1, '广东三日游', '探索广东的自然风光和美食文化', NULL, '广州', '广州', '["韶关", "肇庆"]', '2024-05-01 09:00:00', '2024-05-03 18:00:00', 'Asia/Shanghai', 'Asia/Shanghai', 3, 1, 2, '["自然风光", "摄影", "美食"]', '本次行程将游览丹霞山、南华寺等著名景点，品尝地道特色美食。', 2000.00, 1850.00, NULL, '["丹霞山", "南华寺"]', 1, 2, 0, 0, 0, 1, NOW(), NOW()),
+(2, '北京文化深度游', '感受首都的历史文化底蕴', NULL, '深圳', '深圳', '["北京"]', '2024-06-01 08:00:00', '2024-06-04 20:00:00', 'Asia/Shanghai', 'Asia/Shanghai', 4, 2, 1, '["历史文化", "博物馆", "建筑"]', '北京行程包含故宫、长城、天安门等历史文化景点。', 3000.00, 2800.00, NULL, '["文化游", "历史游"]', 0, 2, 0, 0, 0, 0, NOW(), NOW());
 
--- 插入测试行程日程数据
-INSERT INTO trip_days (trip_id, day_index, date, datetime, title, summary, city, theme, weather_condition, temperature, accommodation_name, accommodation_address, accommodation_price, accommodation_rating, start_point_name, start_point_time, start_point_type, end_point_name, end_point_time, end_point_type, estimated_cost, is_generated, place_count, food_count) VALUES
-(1, 1, '2024-05-01', '2024-05-01 09:00:00', 'DAY1 - 抵达韶关', '抵达韶关，游览南华�??', '韶关', '�?', '25°-30°', '韶关丹霞山酒�?', '广东省韶关市仁化县丹霞山�?', 380.00, 4.5, '广州白云国际机场', '09:00:00', 'departure', '韶关丹霞山酒�?', '20:00:00', 'accommodation', 450.00, 1, 2, 1),
-(1, 2, '2024-05-02', '2024-05-02 08:00:00', 'DAY2 - 丹霞山深度游', '深度游�?�丹霞山风景�?', '韶关', '�?然�?�光体验', '多云', '23°-28°', '韶关丹霞山酒�?', '广东省韶关市仁化县丹霞山�?', 380.00, 4.5, '韶关丹霞山酒�?', '08:00:00', 'accommodation', '韶关丹霞山酒�?', '19:30:00', 'accommodation', 380.00, 1, 3, 2),
-(1, 3, '2024-05-03', '2024-05-03 09:00:00', 'DAY3 - 返程', '清远一日游后返�?', '清远', '休闲放松', '�?', '26°-31°', '', '', 0, 0, '韶关丹霞山酒�?', '09:00:00', 'accommodation', '广州白云国际机场', '18:00:00', 'departure', 320.00, 1, 1, 1);
+-- 插入测试行程天数数据
+INSERT INTO trip_days (
+  trip_id, day_index, date, datetime, timezone, title, summary, city, theme, weather_condition, weather_condition_text, temperature, weather_icon, humidity, wind, precipitation, uv_index, sunrise, sunset, accommodation_poi_id, accommodation_name, accommodation_address, accommodation_price, accommodation_rating, accommodation_latitude, accommodation_longitude, accommodation_contact, start_point_poi_id, start_point_name, start_point_time, start_point_type, end_point_poi_id, end_point_name, end_point_time, end_point_type, estimated_cost, is_generated, place_count, food_count, created_at, updated_at
+) VALUES
+(1, 1, '2024-05-01', '2024-05-01 09:00:00', 'Asia/Shanghai', 'DAY1 - 韶关丹霞山', '游览丹霞山，欣赏南国奇观', '韶关', '自然风光', '晴', '晴朗', '25°-30°', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '韶关市丹霞山宾馆', '广东省韶关市仁化县丹霞山风景区', 380.00, 4.5, NULL, NULL, NULL, NULL, '广州火车站', '09:00:00', 'departure', NULL, '韶关丹霞山宾馆', '20:00:00', 'accommodation', 450.00, 1, 2, 1, NOW(), NOW()),
+(1, 2, '2024-05-02', '2024-05-02 08:00:00', 'Asia/Shanghai', 'DAY2 - 南华寺祈福', '参观南华寺，体验禅宗文化', '韶关', '文化体验', '多云', '多云', '23°-28°', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '韶关市丹霞山宾馆', '广东省韶关市仁化县丹霞山风景区', 380.00, 4.5, NULL, NULL, NULL, NULL, '韶关丹霞山宾馆', '08:00:00', 'accommodation', NULL, '韶关丹霞山宾馆', '19:30:00', 'accommodation', 380.00, 1, 3, 2, NOW(), NOW());
 
--- 插入测试�?点数�?
-INSERT INTO trip_places (trip_id, day_id, day_index, visit_order, name, address, city, category, image_url, rating, price, start_time, end_time, duration, latitude, longitude, amap_poi_id, contact, is_highlight) VALUES
-(1, 1, 1, 1, '南华�?', '广东省韶关市曲江区马坝镇', '韶关', '寺庙', 'https://example.com/nanhuasi.jpg', 4.8, 20.00, '10:00:00', '12:00:00', 120, 24.969615, 113.601624, 'B0FFG9KCPD', '0751-6502013', 1),
-(1, 1, 1, 2, '丹霞�?', '广东省韶关市仁化县丹霞山�?', '韶关', '�?然景�?', 'https://example.com/danxiashan.jpg', 4.9, 120.00, '14:00:00', '17:00:00', 180, 25.022758, 113.736513, 'B0FFHCF6VV', '0751-6292721', 1),
-(1, 2, 2, 1, '阳元�?', '广东省韶关市仁化县丹霞山风景区内', '韶关', '�?然景�?', 'https://example.com/yangyuanshi.jpg', 4.7, 0, '09:00:00', '10:30:00', 90, 25.025000, 113.740000, 'B0FFHCF6XX', '', 1);
+-- 插入测试景点数据
+INSERT INTO trip_places (
+  trip_id, day_id, day_index, visit_order, name, address, city, category, image_url, images, rating, price, start_time, end_time, duration, transportation, transportation_details, distance, estimated_time, latitude, longitude, amap_poi_id, amap_navigation_url, web_navigation_url, booking_required, booking_url, contact, notes, is_highlight, created_at, updated_at
+) VALUES
+(1, 1, 1, 1, '南华寺', '广东省韶关市曲江区马坝镇', '韶关', '寺庙', 'https://example.com/nanhuasi.jpg', NULL, 4.8, 20.00, '10:00:00', '12:00:00', 120, NULL, NULL, NULL, NULL, 24.969615, 113.601624, 'B0FFG9KCPD', NULL, NULL, 0, NULL, '0751-6502013', NULL, 1, NOW(), NOW()),
+(1, 1, 1, 2, '丹霞山', '广东省韶关市仁化县丹霞山风景区', '韶关', '自然景观', 'https://example.com/danxiashan.jpg', NULL, 4.9, 120.00, '14:00:00', '17:00:00', 180, NULL, NULL, NULL, NULL, 25.022758, 113.736513, 'B0FFHCF6VV', NULL, NULL, 0, NULL, '0751-6292721', NULL, 1, NOW(), NOW());
 
--- 插入测试美�?�数�?
-INSERT INTO trip_foods (trip_id, day_id, day_index, visit_order, name, address, city, category, image_url, rating, price, start_time, duration, latitude, longitude, amap_poi_id, contact, recommendation, business_hours, is_highlight) VALUES
-(1, 1, 1, 1, '韶关特色餐厅', '广东省韶关市武江区建国路123�?', '韶关', '粤菜', 'https://example.com/food1.jpg', 4.6, 80.00, '12:30:00', 60, 24.801234, 113.591234, 'B0FFHCF6YY', '0751-8888888', '白切鸡、炒河粉、老火�?', '10:00-22:00', 1),
-(1, 2, 2, 1, '丹霞山农家乐', '广东省韶关市仁化县丹霞山镇景区附�?', '韶关', '农�?�菜', 'https://example.com/food2.jpg', 4.4, 60.00, '12:00:00', 60, 25.020000, 113.735000, 'B0FFHCF6ZZ', '0751-6292888', '土鸡煲、野菜、山泉水豆腐', '09:00-21:00', 0);
+-- 插入测试美食数据
+INSERT INTO trip_foods (
+  trip_id, day_id, day_index, visit_order, name, address, city, category, image_url, images, rating, price, start_time, duration, latitude, longitude, amap_poi_id, amap_navigation_url, web_navigation_url, contact, description, recommendation, business_hours, is_highlight, created_at, updated_at
+) VALUES
+(1, 1, 1, 1, '韶关特色腊味馆', '广东省韶关市浈江区建设路123号', '韶关', '粤菜', 'https://example.com/food1.jpg', NULL, 4.6, 80.00, '12:30:00', 60, 24.801234, 113.591234, 'B0FFHCF6YY', NULL, NULL, '0751-8888888', NULL, '腊味拼盘、艇仔粥、牛杂', '10:00-22:00', 1, NOW(), NOW());
 
 -- 插入测试地点数据
-INSERT INTO locations (amap_poi_id, name, type, type_code, address, latitude, longitude, district, city, province, tel, rating, price, tags, description, data_source) VALUES
-('B0FFHCF6VV', '丹霞�?', '�?�?', '110202', '广东省韶关市仁化县丹霞山�?', 25.022758, 113.736513, '仁化�?', '韶关�?', '广东�?', '0751-6292721', 4.9, 120.00, '["世界�?然遗�?", "国�??5A级景�?", "地质�?�?"]', '丹霞山以赤�?�丹崖为特色，是世界�?然遗产，以�?�特的红砂岩地貌著称�?', 'amap'),
-('B0FFG9KCPD', '南华�?', '�?�?', '110202', '广东省韶关市曲江区马坝镇', 24.969615, 113.601624, '曲江�?', '韶关�?', '广东�?', '0751-6502013', 4.8, 20.00, '["佛教寺庙", "历史文化", "�?祖慧�?"]', '南华寺是�?国佛教名寺之一，六祖慧能弘�?南宗禅法的发源地�?', 'amap');
+INSERT INTO locations (
+  amap_poi_id, name, address, city_code, city_name, province_name, country_name, latitude, longitude, category_id, category_name, tags, rating, price_level, phone_numbers, website_url, images, business_hours, description, source, raw_data, created_at, updated_at
+) VALUES
+('B0FFHCF6VV', '丹霞山', '广东省韶关市仁化县丹霞山风景区', NULL, '韶关市', '广东省', '中国', 25.022758, 113.736513, NULL, '景点', '["世界自然遗产", "国家5A景区", "地貌奇观"]', 4.9, NULL, '0751-6292721', NULL, NULL, NULL, '丹霞山以独特的丹霞地貌著称，是世界自然遗产地。', 'amap', NULL, NOW(), NOW()),
+('B0FFG9KCPD', '南华寺', '广东省韶关市曲江区马坝镇', NULL, '韶关市', '广东省', '中国', 24.969615, 113.601624, NULL, '景点', '["禅宗祖庭", "历史文化", "摄影胜地"]', 4.8, NULL, '0751-6502013', NULL, NULL, NULL, '南华寺是中国著名古刹之一，六祖慧能弘法圣地。', 'amap', NULL, NOW(), NOW());
 
--- 创建外键约束
+-- 鍒涘缓澶栭敭绾︽潫
 ALTER TABLE trips ADD CONSTRAINT fk_trips_user_id FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
 ALTER TABLE trip_days ADD CONSTRAINT fk_trip_days_trip_id FOREIGN KEY (trip_id) REFERENCES trips(id) ON DELETE CASCADE;
 ALTER TABLE trip_places ADD CONSTRAINT fk_trip_places_trip_id FOREIGN KEY (trip_id) REFERENCES trips(id) ON DELETE CASCADE;
@@ -462,11 +471,11 @@ ALTER TABLE trip_reviews ADD CONSTRAINT fk_trip_reviews_user_id FOREIGN KEY (use
 ALTER TABLE ai_model_calls ADD CONSTRAINT fk_ai_model_calls_user_id FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
 ALTER TABLE ai_model_calls ADD CONSTRAINT fk_ai_model_calls_trip_id FOREIGN KEY (trip_id) REFERENCES trips(id) ON DELETE SET NULL;
 
--- 插入完成提示
-SELECT '数据库初始化完成�?' as message;
-SELECT CONCAT('创建�? ', COUNT(*), ' �?用户') as user_count FROM users;
-SELECT CONCAT('创建�? ', COUNT(*), ' �?行程') as trip_count FROM trips;
-SELECT CONCAT('创建�? ', COUNT(*), ' �?行程日程') as trip_day_count FROM trip_days;
-SELECT CONCAT('创建�? ', COUNT(*), ' �?�?�?') as place_count FROM trip_places;
-SELECT CONCAT('创建�? ', COUNT(*), ' �?美�??') as food_count FROM trip_foods;
-SELECT CONCAT('创建�? ', COUNT(*), ' �?地点') as location_count FROM locations;
+-- 鎻掑叆瀹屾垚鎻愮ず
+SELECT '鏁版嵁搴撳垵濮嬪寲瀹屾垚锛?' as message;
+SELECT CONCAT('鍒涘缓浜? ', COUNT(*), ' 涓?鐢ㄦ埛') as user_count FROM users;
+SELECT CONCAT('鍒涘缓浜? ', COUNT(*), ' 涓?琛岀▼') as trip_count FROM trips;
+SELECT CONCAT('鍒涘缓浜? ', COUNT(*), ' 涓?琛岀▼鏃ョ▼') as trip_day_count FROM trip_days;
+SELECT CONCAT('鍒涘缓浜? ', COUNT(*), ' 涓?鏅?鐐?') as place_count FROM trip_places;
+SELECT CONCAT('鍒涘缓浜? ', COUNT(*), ' 涓?缇庨??') as food_count FROM trip_foods;
+SELECT CONCAT('鍒涘缓浜? ', COUNT(*), ' 涓?鍦扮偣') as location_count FROM locations;
